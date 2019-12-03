@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import os
 import socket, sys
+from operator import itemgetter
+
+from collections import namedtuple
 
 BUFFER_SIZE = 1024
 
@@ -30,7 +33,6 @@ def listen_as_server(listening_port):
         conn.close()
 
 
-
 def get_files():
     files = []
     for file_name in os.listdir("."):
@@ -40,7 +42,6 @@ def get_files():
 
 
 def listening_mode(TCP_IP, TCP_PORT, listening_port):
-
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
     files = get_files()
@@ -48,21 +49,53 @@ def listening_mode(TCP_IP, TCP_PORT, listening_port):
     s.close()
     listen_as_server(listening_port)
 
+
 def user_mode(TCP_IP, TCP_PORT):
     # make connection with server to ask for file
-    # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # s.connect((TCP_IP, TCP_PORT))
-    # request = raw_input("Search:")
-    # s.send("2 " + request)
-    # file_list = s.recv(BUFFER_SIZE)
-    # # todo - choose which file
-    file_name = "a.txt"
-    ip = "127.0.0.1"
-    port = 6648
-    download(file_name,ip, port)
-    #s.close()
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((TCP_IP, TCP_PORT))
+    while True:
+        request = raw_input("Search: ")
+        s.send("2 " + request)
+        file_list = s.recv(BUFFER_SIZE)
+        while file_list.find("\n") == -1:
+            file_list += s.recv(BUFFER_SIZE)
+        if file_list == "\n":
+            continue
+        files_info = make_dict(file_list[:-1])
+        show_files(files_info)
 
-def download(file_name,ip, port):
+        file_num = raw_input("Choose: ")
+        if not file_num.isdigit():
+            continue
+        file_num = int(file_num) - 1
+        if (file_num not in range(0,len(files_info))):
+            continue
+        file_name = files_info[file_num][0]
+        ip = files_info[file_num][1][0]
+        port = int(files_info[file_num][1][1])
+        download(file_name, ip, port)
+# s.close()
+
+
+def make_dict(file_string):
+    dict = {}
+    files = file_string.split(",")
+    files.sort()
+    for file in files:
+        name, ip, port = file.split(" ")
+        dict[name] = (ip, port)
+    return sorted(dict.items(), key=itemgetter(0))
+
+
+def show_files(files):
+    counter = 1
+    for file_name, address in files:
+        print str(counter) + " " + file_name
+        counter += 1
+
+
+def download(file_name, ip, port):
     file = open(file_name, "wb")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, port))
@@ -80,8 +113,6 @@ if __name__ == "__main__":
     TCP_PORT = int(sys.argv[3])
     if Mode == 0:
         listening_port = int(sys.argv[4])
-        #listening_mode(TCP_IP, TCP_PORT, listening_port)
-        listen_as_server(listening_port)
+        listening_mode(TCP_IP, TCP_PORT, listening_port)
     else:
-        user_mode(TCP_IP,TCP_PORT)
-
+        user_mode(TCP_IP, TCP_PORT)

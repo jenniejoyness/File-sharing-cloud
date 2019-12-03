@@ -1,33 +1,42 @@
 import socket, sys
-from collections import namedtuple
 
-uploader = namedtuple('uploader', ['ip', 'port', 'fileList'])
 uploaders = {}
 
 
 def register(data, client_addr):
     files = data[-1].split(",")
-    print (client_addr[0], data[1], files)
-    file_name = ""
+    ip = client_addr[0]
+    port = data[0]
     for file_name in files:
-        uploaders[file_name] = (client_addr[0], data[1])
-    print uploaders
+        uploaders[file_name] = (ip, port)
 
-def search()
+
+def search(client_request, client_addr):
+    files = []
+    for key in uploaders.keys():
+        if client_request[0] in key:
+            files.append(key + " " + uploaders[key][0] + " " + uploaders[key][1])
+    send_to_client(",".join(files) + "\n")
+
+
+def send_to_client(message):
+    c_socket.send(message)
+
 
 def illegal_request(data, client_addr):
     return 'blah'
 
 
 switcher = {
-    "1": register
+    "1": register,
+    "2": search
 }
 
 
-def request_handler(data, client_addr):
-    data = data.split(" ")
-    func = switcher.get(data[0], illegal_request)
-    func(data, client_addr)
+def request_handler(client_request, client_addr):
+    client_request = client_request.split(" ")
+    func = switcher.get(client_request[0], illegal_request)
+    func(client_request[1:], client_addr)
 
 
 if __name__ == "__main__":
@@ -37,8 +46,7 @@ if __name__ == "__main__":
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((TCP_IP, TCP_PORT))
     s.listen(1)
-
-    # handling client requests f
+    # handling client requests
     while True:
         c_socket, addr = s.accept()
         while True:
