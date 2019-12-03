@@ -6,10 +6,12 @@ uploaders = []
 
 
 def register(data, client_addr):
-    uploaders.append(uploader(addr.ip, addr.port, data))
+    files = data[-1].split(",")
+    print (client_addr[0], data[1], files)
+    uploaders.append(uploader(client_addr[0], data[1], files))
 
 
-def illegal_request():
+def illegal_request(data, client_addr):
     return 'blah'
 
 
@@ -21,7 +23,7 @@ switcher = {
 def foo(data, client_addr):
     data = data.split(" ")
     func = switcher.get(data[0], illegal_request)
-    func()
+    func(data, client_addr)
 
 
 if __name__ == "__main__":
@@ -37,7 +39,7 @@ if __name__ == "__main__":
         print 'New connection from:', addr
         while True:
             data = c_socket.recv(BUFFER_SIZE)
-
+            foo(data, addr)
             if not data: break
             print "received:", data
             c_socket.send(data.upper())
