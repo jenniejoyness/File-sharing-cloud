@@ -2,14 +2,18 @@ import socket, sys
 from collections import namedtuple
 
 uploader = namedtuple('uploader', ['ip', 'port', 'fileList'])
-uploaders = []
+uploaders = {}
 
 
 def register(data, client_addr):
     files = data[-1].split(",")
     print (client_addr[0], data[1], files)
-    uploaders.append(uploader(client_addr[0], data[1], files))
+    file_name = ""
+    for file_name in files:
+        uploaders[file_name] = (client_addr[0], data[1])
+    print uploaders
 
+def search()
 
 def illegal_request(data, client_addr):
     return 'blah'
@@ -20,7 +24,7 @@ switcher = {
 }
 
 
-def foo(data, client_addr):
+def request_handler(data, client_addr):
     data = data.split(" ")
     func = switcher.get(data[0], illegal_request)
     func(data, client_addr)
@@ -34,13 +38,11 @@ if __name__ == "__main__":
     s.bind((TCP_IP, TCP_PORT))
     s.listen(1)
 
+    # handling client requests f
     while True:
         c_socket, addr = s.accept()
-        print 'New connection from:', addr
         while True:
             data = c_socket.recv(BUFFER_SIZE)
-            foo(data, addr)
+            request_handler(data, addr)
             if not data: break
-            print "received:", data
-            c_socket.send(data.upper())
         c_socket.close()
