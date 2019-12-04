@@ -2,7 +2,11 @@ import socket, sys
 
 uploaders = {}
 
-
+'''
+register uploader into dictionary.
+key: name of file
+value : ip, port
+'''
 def register(data, client_addr):
     files = data[-1].split(",")
     ip = client_addr[0]
@@ -10,7 +14,10 @@ def register(data, client_addr):
     for file_name in files:
         uploaders[file_name] = (ip, port)
 
-
+'''
+search in dictionary all the files that contain the client request.
+return string of file info split by ','
+'''
 def search(client_request, client_addr):
     files = []
     for key in uploaders.keys():
@@ -32,7 +39,10 @@ switcher = {
     "2": search
 }
 
-
+'''
+send to the correct handler.
+if an illegal request is made (not 1 or 2) will ignore.
+'''
 def request_handler(client_request, client_addr):
     client_request = client_request.split(" ")
     func = switcher.get(client_request[0], illegal_request)

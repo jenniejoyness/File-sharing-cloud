@@ -1,20 +1,14 @@
-#!/usr/bin/env python
 import os
 import socket, sys
 from operator import itemgetter
 
-from collections import namedtuple
-
 BUFFER_SIZE = 1024
 
-
-def find(name, path):
-    for root, dirs, files in os.walk(path):
-        if name in files:
-            return os.path.join(root, name)
-
-
-def listen_as_server(listening_port):
+'''
+create server socket and wait for users to connect and request a certain file.
+open file and send all info back to client.
+'''
+def listener(listening_port):
     TCP_IP = '0.0.0.0'
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((TCP_IP, int(listening_port)))
@@ -33,6 +27,11 @@ def listen_as_server(listening_port):
         conn.close()
 
 
+'''
+returns a string separated by ',' of all the current file names in the current folder.
+'''
+
+
 def get_files():
     files = []
     for file_name in os.listdir("."):
@@ -41,44 +40,69 @@ def get_files():
     return ",".join(files)
 
 
+'''
+1. create client socket - connect to server to inform which port will be listening on
+and which files can be dowloaded
+2. open server socket for other client file requests
+'''
+
+
 def listening_mode(TCP_IP, TCP_PORT, listening_port):
+    # client socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
+    # files in current folder
     files = get_files()
+    # this way of writing to will notify the server to add this client as a uploader
     s.send("1 " + str(listening_port) + " " + files)
     s.close()
-    listen_as_server(listening_port)
+    listener(listening_port)
 
 
+'''
+connect to server as client and send file requests from the user.
+collect info from server about uploader.
+connect to uploader and download file to current folder.
+'''
 def user_mode(TCP_IP, TCP_PORT):
     # make connection with server to ask for file
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
+    # waiting for user input
     while True:
         request = raw_input("Search: ")
         s.send("2 " + request)
+        # receive a string of all file names and info
         file_list = s.recv(BUFFER_SIZE)
         while file_list.find("\n") == -1:
             file_list += s.recv(BUFFER_SIZE)
         if file_list == "\n":
             continue
-        files_info = make_dict(file_list[:-1])
+        # sorted the data from ([Name][Ip][Port],... ) to list
+        files_info = organize_info(file_list[:-1])
         show_files(files_info)
 
         file_num = raw_input("Choose: ")
         if not file_num.isdigit():
             continue
         file_num = int(file_num) - 1
-        if (file_num not in range(0,len(files_info))):
+        if (file_num not in range(0, len(files_info))):
             continue
+        # download the selected file to current folder
         file_name = files_info[file_num][0]
         ip = files_info[file_num][1][0]
         port = int(files_info[file_num][1][1])
         download(file_name, ip, port)
-# s.close()
+    s.close()
 
 
-def make_dict(file_string):
+'''
+returns list of tuples that contain ("name",("ip","port"))
+sorted alphabetically
+'''
+
+
+def organize_info(file_string):
     dict = {}
     files = file_string.split(",")
     files.sort()
@@ -87,12 +111,21 @@ def make_dict(file_string):
         dict[name] = (ip, port)
     return sorted(dict.items(), key=itemgetter(0))
 
-
+'''
+print all the file names.
+'''
 def show_files(files):
     counter = 1
     for file_name, address in files:
         print str(counter) + " " + file_name
         counter += 1
+
+
+'''
+create file in current folder.
+connect as client to the client uploader and request the file.
+receive the data from the file and write to new file in current folder.
+'''
 
 
 def download(file_name, ip, port):
@@ -105,13 +138,16 @@ def download(file_name, ip, port):
         file.write(data)
         data = s.recv(BUFFER_SIZE)
     s.close()
+    #todo
+    file.close()
 
 
 if __name__ == "__main__":
-    Mode = int(sys.argv[1])
+    mode = int(sys.argv[1])
     TCP_IP = sys.argv[2]
     TCP_PORT = int(sys.argv[3])
-    if Mode == 0:
+    # listening mode
+    if mode == 0:
         listening_port = int(sys.argv[4])
         listening_mode(TCP_IP, TCP_PORT, listening_port)
     else:
