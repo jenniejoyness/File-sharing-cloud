@@ -1,28 +1,27 @@
 import socket, sys
 
-uploaders = {}
+uploaders = []
 
 '''
-register uploader into dictionary.
-key: name of file
-value : ip, port
+register uploader into list of tuples.
+tuple format (file_name, ip, port)
 '''
 def register(data, client_addr):
     files = data[-1].split(",")
     ip = client_addr[0]
     port = data[0]
     for file_name in files:
-        uploaders[file_name] = (ip, port)
+        uploaders.append((file_name, ip, port))
 
 '''
-search in dictionary all the files that contain the client request.
+search in the list all the files that contain the client request.
 return string of file info split by ','
 '''
 def search(client_request, client_addr):
     files = []
-    for key in uploaders.keys():
-        if client_request[0] in key:
-            files.append(key + " " + uploaders[key][0] + " " + uploaders[key][1])
+    for file_name, ip, port in uploaders:
+        if client_request[0] in file_name:
+            files.append(file_name + " " + ip + " " + port)
     send_to_client(",".join(files) + "\n")
 
 

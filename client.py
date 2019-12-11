@@ -8,6 +8,7 @@ BUFFER_SIZE = 1024
 create server socket and wait for users to connect and request a certain file.
 open file and send all info back to client.
 '''
+
 def listener(listening_port):
     TCP_IP = '0.0.0.0'
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,6 +65,8 @@ connect to server as client and send file requests from the user.
 collect info from server about uploader.
 connect to uploader and download file to current folder.
 '''
+
+
 def user_mode(TCP_IP, TCP_PORT):
     # make connection with server to ask for file
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -90,8 +93,8 @@ def user_mode(TCP_IP, TCP_PORT):
             continue
         # download the selected file to current folder
         file_name = files_info[file_num][0]
-        ip = files_info[file_num][1][0]
-        port = int(files_info[file_num][1][1])
+        ip = files_info[file_num][1]
+        port = int(files_info[file_num][2])
         download(file_name, ip, port)
     s.close()
 
@@ -103,20 +106,21 @@ sorted alphabetically
 
 
 def organize_info(file_string):
-    dict = {}
+    list = []
     files = file_string.split(",")
     files.sort()
     for file in files:
         name, ip, port = file.split(" ")
-        dict[name] = (ip, port)
-    return sorted(dict.items(), key=itemgetter(0))
+        list.append((name,ip, port))
+    return list
+
 
 '''
 print all the file names.
 '''
 def show_files(files):
     counter = 1
-    for file_name, address in files:
+    for file_name, ip, port in files:
         print str(counter) + " " + file_name
         counter += 1
 
@@ -126,8 +130,6 @@ create file in current folder.
 connect as client to the client uploader and request the file.
 receive the data from the file and write to new file in current folder.
 '''
-
-
 def download(file_name, ip, port):
     file = open(file_name, "wb")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -138,7 +140,6 @@ def download(file_name, ip, port):
         file.write(data)
         data = s.recv(BUFFER_SIZE)
     s.close()
-    #todo
     file.close()
 
 
